@@ -1,5 +1,7 @@
 {
   "name": "overlay",
+  "version": "0.0.1",
+  "description": "Create overlays that can be closed on click and emit events",
   "scripts": [ "index.js", "template.js" ],
   "dependencies": {
     "nib-components/utils": "0.0.*"
