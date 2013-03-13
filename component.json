@@ -1,0 +1,7 @@
+{
+  "name": "overlay",
+  "scripts": [ "index.js", "template.js" ],
+  "dependencies": {
+    "nib-components/utils": "0.0.*"
+  }
+}
