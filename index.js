@@ -12,11 +12,15 @@ function Overlay(options) {
   this.options = _.defaults(options || {}, {
     hiddenClass: 'is-inactive',
     closable: true,
-    loadingClass: 'is-loading'
+    fixed: true,
+    loadingClass: 'is-loading',
+    parent: document.body
   });
 
   this.el = $(this.template);
-  this.el.appendTo('body');
+  this.el.appendTo(this.options.parent);
+
+  this.el.toggleClass('is-fixed', this.options.fixed);
 
   if (this.options.closable) {
     this.el.on('click', this.hide.bind(this));
@@ -36,7 +40,7 @@ Overlay.prototype.template = template;
  *
  * Emits "show" event.
  *
- * @return {Overlay} 
+ * @return {Overlay}
  * @api public
  */
 
