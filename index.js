@@ -116,6 +116,7 @@ Overlay.prototype.show = function(){
   var self = this;
   this.trigger('show');
   this.isVisible = true;
+  this.enterDocument();
   setTimeout(function(){
     self.removeClass(self.options.hiddenClass);
   }, 0);
@@ -153,11 +154,11 @@ Overlay.prototype.hide = function(){
 Overlay.prototype.loading = function(loading){
   if(loading) {
     this.emit('loading');
-    this.removeClass(this.options.loadingClass);
+    this.addClass(this.options.loadingClass);
   }
   else {
     this.emit('ready');
-    this.addClass(this.options.loadingClass);
+    this.removeClass(this.options.loadingClass);
   }
   return this;
 };
