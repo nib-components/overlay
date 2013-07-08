@@ -1,5 +1,8 @@
 var template = require('./template');
-var utils = require('utils');
+var afterTransition = require('after-transition');
+var domify = require('domify');
+var events = require('event');
+var emitter = require('emitter');
 
 /**
  * Initialize a new `Overlay`.
@@ -9,31 +12,97 @@ var utils = require('utils');
  */
 
 function Overlay(options) {
-  this.options = _.defaults(options || {}, {
-    hiddenClass: 'is-inactive',
-    closable: true,
-    fixed: true,
-    loadingClass: 'is-loading',
-    parent: document.body
-  });
-
-  this.el = $(this.template);
-  this.el.appendTo(this.options.parent);
-
-  this.el.toggleClass('is-fixed', this.options.fixed);
-
-  if (this.options.closable) {
-    this.el.on('click', this.hide.bind(this));
-  }
+  this.entered = false;
+  this.isVisible = false;
+  this.options = this.normalizeOptions(options);
+  this.el = domify(this.template);
+  this.render();
 }
 
-_.extend(Overlay.prototype, Backbone.Events);
+/**
+ * Default options
+ * @type {Object}
+ */
+Overlay.defaults = {
+  hiddenClass: 'is-inactive',
+  closable: true,
+  fixed: true,
+  loadingClass: 'is-loading',
+  parent: document.body
+};
+
+emitter(Overlay.prototype);
+
+/**
+ * Backwards compatibility
+ * @type {Function}
+ */
+Overlay.prototype.trigger = Overlay.prototype.emit;
 
 /**
  * Inherits from `Emitter.prototype`.
  */
-
 Overlay.prototype.template = template;
+
+/**
+ * Normalize the options to return a consistent object we can use
+ * @param  {String|Object} options
+ * @return {Object}
+ */
+Overlay.prototype.normalizeOptions = function(options) {
+  options = options || {};
+  for(var key in Overlay.defaults) {
+    if(options[key] == null) {
+      options[key] = Overlay.defaults[key];
+    }
+  }
+  return options;
+};
+
+/**
+ * Completely remove the dialog and all references to it
+ * @return {void}
+ */
+Overlay.prototype.destroy = function(){
+  this.emit('destroy');
+  this.hide();
+  this.off();
+  this.leaveDocument();
+};
+
+/**
+ * Add a class or classes
+ * @param  {String} classes
+ * @return {Dialog}
+ */
+Overlay.prototype.addClass = function(classes) {
+  this.el.classList.add.apply(this.el.classList, classes.split(' '));
+  return this;
+};
+
+/**
+ * Remove a class or classes
+ * @param  {String} classes
+ * @return {Dialog}
+ */
+Overlay.prototype.removeClass = function(classes) {
+  this.el.classList.remove.apply(this.el.classList, classes.split(' '));
+  return this;
+};
+
+/**
+ * Render the view
+ * @return {Overlay}
+ */
+Overlay.prototype.render = function() {
+  if(this.options.fixed) {
+    this.el.classList.add('is-fixed');
+  }
+  if(this.options.closable) {
+    events.bind(this.el, 'click', this.hide.bind(this));
+  }
+  return this;
+}
 
 /**
  * Show the overlay.
@@ -43,13 +112,12 @@ Overlay.prototype.template = template;
  * @return {Overlay}
  * @api public
  */
-
 Overlay.prototype.show = function(){
   var self = this;
   this.trigger('show');
   this.isVisible = true;
   setTimeout(function(){
-    self.el.removeClass(self.options.hiddenClass);
+    self.removeClass(self.options.hiddenClass);
   }, 0);
   return this;
 };
@@ -62,30 +130,15 @@ Overlay.prototype.show = function(){
  * @return {Overlay}
  * @api public
  */
-
 Overlay.prototype.hide = function(){
-  var self = this;
-  this.trigger('hide');
   this.isVisible = false;
-  utils.afterTransition(this.el, function(){
-    self.remove();
-  });
-  this.el.addClass(this.options.hiddenClass);
-  return this;
-};
-
-/**
- * Hide the overlay without triggerting "hide".
- *
- * Emits "close" event.
- *
- * @return {Overlay}
- * @api public
- */
-
-Overlay.prototype.remove = function(){
-  this.el.remove();
-  this.trigger('close');
+  afterTransition.once(this.el, function(){
+    this.leaveDocument();
+    this.emit('hide finished');
+  }.bind(this));
+  this.addClass(this.options.hiddenClass);
+  this.emit('hide');
+  this.emit('close'); // Backwards compatibility
   return this;
 };
 
@@ -97,11 +150,38 @@ Overlay.prototype.remove = function(){
  * @return {Overlay}
  * @api public
  */
-
 Overlay.prototype.loading = function(loading){
-  this.el.toggleClass(this.options.loadingClass, loading);
-  this.trigger('loading');
+  if(loading) {
+    this.emit('loading');
+    this.removeClass(this.options.loadingClass);
+  }
+  else {
+    this.emit('ready');
+    this.addClass(this.options.loadingClass);
+  }
   return this;
+};
+
+/**
+ * Remove the element from the DOM
+ * @return {void}
+ */
+Overlay.prototype.leaveDocument = function() {
+  if(this.entered === false) return false;
+  this.entered = false;
+  this.el.parentNode.removeChild(this.el);
+  this.emit('leave');
+};
+
+/**
+ * Add the element to the DOM
+ * @return {void}
+ */
+Overlay.prototype.enterDocument = function() {
+  if(this.entered) return false;
+  this.entered = true;
+  this.options.parent.appendChild(this.el);
+  this.emit('enter');
 };
 
 module.exports = Overlay;
