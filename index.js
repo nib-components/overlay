@@ -25,7 +25,7 @@ function Overlay(options) {
  */
 Overlay.defaults = {
   hiddenClass: 'is-inactive',
-  closable: true,
+  closeable: true,
   fixed: true,
   loadingClass: 'is-loading',
   parent: document.body
@@ -98,7 +98,7 @@ Overlay.prototype.render = function() {
   if(this.options.fixed) {
     this.el.classList.add('is-fixed');
   }
-  if(this.options.closable) {
+  if(this.options.closeable) {
     events.bind(this.el, 'click', this.hide.bind(this));
   }
   return this;
